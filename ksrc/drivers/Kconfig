@@ -1,0 +1,7 @@
+menu "Drivers"
+
+source "drivers/xenomai/serial/Kconfig"
+source "drivers/xenomai/testing/Kconfig"
+source "drivers/xenomai/can/Kconfig"
+
+endmenu
