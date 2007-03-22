@@ -1,7 +1,7 @@
 0. Introduction
 ---------------
 
-This is a first version of RTDM-native, the port of RTDM [1,2] over native
+This is a first version of RTDM-native, a port of RTDM [1,2] over native
 Linux with the real-time preemption and high-resolution timer patch [3,4].
 
 1. Installation
@@ -66,6 +66,7 @@ If you want several different configs/builds at hand, you can reuse
 the same source by adding O=../build-<target> to each make invocation.
 See also section 2.2 of [5] for an example.
 
+
 1.4 Building the user-space support
 -----------------------------------
 
@@ -76,7 +77,36 @@ $ cd RTDM_NATIVE_ROOT/examples/rtdm-native
 $ make
 
 
-2. References
+2. Availability and test cases
+------------------------------
+
+This port does not include complete support for RTDM task services. The
+implementation is not straight-forward, especially because of trick parts
+like task removal and releasing locked resources. But for most RTDM
+drivers, it is not needed.
+
+The RTDM-native port has been tested with the following RTDM named and
+protocol drivers:
+
+- RTserial
+- RT-Socket-CAN
+- irqbench (without kernel tasks)
+
+Note: for RTnet [8] further effort is necessary. The RTDM task support
+needs to be completed and the RTnet build system must be adopted
+accordingly.
+
+
+3. To-Do List
+-------------
+
+- Implementing RTDM task services.
+- Implementing PROC file-system support.
+- Fixing a few issues marked with "FIXME" in the source code.
+- Adapting RTnet to build and work with RTnet.
+
+
+4. References
 -------------
 
 [1] http://www.xenomai.org/documentation/branches/v2.3.x/pdf/RTDM-and-Applications.pdf
@@ -86,3 +116,4 @@ $ make
 [5] http://www.rts.uni-hannover.de/xenomai/lxr/source/README.INSTALL?v=SVN-trunk
 [6] https://gna.org/svn/?group=xenomai
 [7] http://www.rts.uni-hannover.de/xenomai/lxr/source/TROUBLESHOOTING?v=SVN-trunk
+[8] http://www.rtnet.org
