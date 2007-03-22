@@ -35,7 +35,11 @@
 #error Real-time preemption not enabled (CONFIG_PREEMPT_RT)
 
 #else
+#ifndef CONFIG_HIGH_RES_TIMERS
+#error High-resolution timers not enabled (CONFIG_HIGH_RES_TIMERS)
+#endif
 #include <rtdm/rtdm_driver_native.h>
+
 #endif
 
 #endif /* _RTDM_DRIVER_H */
