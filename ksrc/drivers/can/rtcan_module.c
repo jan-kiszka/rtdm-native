@@ -175,7 +175,7 @@ static int rtcan_read_proc_sockets(char *buf, char **start, off_t offset,
     /* fd Name___________ Filter ErrMask RX_Timeout TX_Timeout RX_BufFull TX_Lo
      *  0 rtcan0               1 0x00010 1234567890 1234567890 1234567890 12345
      */
-    if (!RTCAN_PROC_PRINT("fd Name___________ Filter ErrMask RX_Timeout_ns "
+    if (!RTCAN_PROC_PRINT("__PID Name___________ Filter ErrMask RX_Timeout_ns "
 			  "TX_Timeout_ns RX_BufFull TX_Lo\n"))
 	goto done;
 
@@ -196,7 +196,7 @@ static int rtcan_read_proc_sockets(char *buf, char **start, off_t offset,
 	}
 	rtcan_get_timeout_name(sock->tx_timeout, tx_timeout, 20);
 	rtcan_get_timeout_name(sock->rx_timeout, rx_timeout, 20);
-	if (!RTCAN_PROC_PRINT("%2d %-15s %6d 0x%05x %13s %13s %10d %5d\n",
+	if (!RTCAN_PROC_PRINT("%5d %-15s %6d 0x%05x %13s %13s %10d %5d\n",
 			      context->fd, name, sock->flistlen,
 			      sock->err_mask, rx_timeout, tx_timeout,
 			      sock->rx_buf_full,
@@ -266,7 +266,7 @@ static int rtcan_read_proc_filter(char *buf, char **start, off_t offset,
      *   3 0x12345678 0x12345678  no 1234567890
      */
 
-    if (!RTCAN_PROC_PRINT("fd __CAN_ID__ _CAN_Mask_ Inv MatchCount\n"))
+    if (!RTCAN_PROC_PRINT("__PID __CAN_ID__ _CAN_Mask_ Inv MatchCount\n"))
         goto done;
 
     rtdm_lock_get_irqsave(&rtcan_recv_list_lock, lock_ctx);
@@ -275,7 +275,7 @@ static int rtcan_read_proc_filter(char *buf, char **start, off_t offset,
     while (recv_listener != NULL) {
 	context = rtcan_socket_context(recv_listener->sock);
 
-	if (!RTCAN_PROC_PRINT("%2d 0x%08x 0x%08x %s %10d\n",
+	if (!RTCAN_PROC_PRINT("%5d 0x%08x 0x%08x %s %10d\n",
 			      context->fd,
 			      recv_listener->can_filter.can_id,
 			      recv_listener->can_filter.can_mask &
