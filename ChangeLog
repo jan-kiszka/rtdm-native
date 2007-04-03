@@ -14,8 +14,13 @@
 	* examples/rtdm-native/canconfig.c: Controller mode settings and doc
 	has been corrected.
 
+2007-03-30  Jan Kiszka  <jan.kiszka@web.de>
+
+	* ksrc/drivers/can/rtcan_raw.c (rtcan_raw_setsockopt): Fix
+	CAN_RAW_FILTER for in-kernel users.
+
 2007-03-19  Wolfgang Grandegger  <wg@grandegger.com>
 
 	* Started: inital port of RTDM-native, the RTDM over native Linux with
-	the real-time preemption and high-resolution timer patch. The RTDM 
+	the real-time preemption and high-resolution timer patch. The RTDM
 	drivers tree has been extracted from the Xenomai trunk on 2007-03-18.

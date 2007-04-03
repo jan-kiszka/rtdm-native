@@ -338,7 +338,7 @@ static int rtcan_raw_setsockopt(struct rtdm_dev_context *context,
 		    return -EFAULT;
 		}
 	    } else
-		memcpy(flist, so->optval, so->optlen);
+		memcpy(flist->flist, so->optval, so->optlen);
 	    flist->flistlen = flistlen;
 	}
 
