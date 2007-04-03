@@ -215,6 +215,7 @@ typedef struct rttst_rtdmtest_config {
 	unsigned int seqcount;
 	int delay_jiffies;
 	nanosecs_rel_t timeout;
+	int priority;
 } rttst_rtdmtest_config_t;
 
 
@@ -256,5 +257,14 @@ typedef struct rttst_rtdmtest_config {
 
 #define RTTST_RTIOC_RTDMTEST_NRTSIG_PEND \
 	_IO(RTIOC_TYPE_TESTING, 0xa0)
+
+#define RTTST_RTIOC_RTDMTEST_TASK_CREATE \
+	_IOW(RTIOC_TYPE_TESTING, 0xb0, struct rttst_rtdmtest_config)
+
+#define RTTST_RTIOC_RTDMTEST_TASK_DESTROY \
+	_IO(RTIOC_TYPE_TESTING, 0xb1)
+
+#define RTTST_RTIOC_RTDMTEST_TASK_SET_PRIO \
+	_IOW(RTIOC_TYPE_TESTING, 0xb2, struct rttst_rtdmtest_config)
 
 #endif /* _RTTESTING_H */

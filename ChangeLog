@@ -1,3 +1,14 @@
+2007-04-03 Wolfgang Grandegger  <wg@grandegger.com>
+
+	* examples/rtdm-native/Makefile, examples/rtdm-native/rtdmtest-task.c:
+	Basic test programs for RTDM tasks added,
+
+	* include/rtdm/rttesting.h, ksrc/drivers/testing/rtdmtest.c: Basic
+	support for testing RTDM tasks added.
+
+	* include/rtdm/rtdm_driver_native.h, ksrc/skins/rtdm/native/drvlib.c:
+	Preliminary RTDM task support added.
+
 2007-04-02  Wolfgang Grandegger  <wg@grandegger.com>
 
 	* ksrc/drivers/can/*: The option CONFIG_XENO_DRIVERS_CAN_BUS_ERR now

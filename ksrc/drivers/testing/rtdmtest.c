@@ -32,6 +32,8 @@ struct rtdmtest_context {
 	struct semaphore nrt_mutex;
 };
 
+static rtdm_task_t task;
+static nanosecs_rel_t task_period;
 static unsigned int start_index;
 static unsigned long rtdm_lock_count;
 
@@ -45,7 +47,32 @@ MODULE_AUTHOR("Wolfgang Grandegger");
 
 static void rtdmtest_nrtsig_handler(rtdm_nrtsig_t *nrt_sig)
 {
-    printk("rtdm_nrtsig_handler called\n");
+	printk("rtdm_nrtsig_handler called\n");
+}
+
+static int rtdmtest_task(void *arg)
+{
+	int ret;
+	nanosecs_abs_t wakeup;
+	struct rttst_rtdmtest_config *config =
+		(struct rttst_rtdmtest_config *)arg;
+
+	printk("%s: started with delay=%lld\n", __FUNCTION__, task_period);
+        wakeup = rtdm_clock_read();
+
+	while (1) {
+#if 0
+		if ((ret = rtdm_task_sleep(task_period)))
+			break;
+#else
+		wakeup += task_period;
+		if ((ret = rtdm_task_sleep_until(wakeup)))
+			break;
+#endif
+		//printk("%s: time=%lld\n", __FUNCTION__, rtdm_clock_read());
+	}
+	printk("%s terminating, ret=%d\n", __FUNCTION__, ret);
+	return ret;
 }
 
 static int rtdmtest_open(struct rtdm_dev_context *context,
@@ -209,6 +236,32 @@ static int rtdmtest_ioctl(struct rtdm_dev_context *context,
 		rtdm_nrtsig_pend(&ctx->nrtsig);
                 break;
 
+        case RTTST_RTIOC_RTDMTEST_TASK_CREATE:
+        case RTTST_RTIOC_RTDMTEST_TASK_SET_PRIO:
+                config = arg;
+                if (user_info) {
+                        if (rtdm_safe_copy_from_user
+                            (user_info, &config_buf, arg,
+                             sizeof(struct rttst_rtdmtest_config)) < 0)
+                                return -EFAULT;
+
+                        config = &config_buf;
+                }
+		if (request == RTTST_RTIOC_RTDMTEST_TASK_CREATE) {
+			task_period = config->timeout;
+			rtdm_task_init(&task, "RTDMTEST",
+				       rtdmtest_task, (void *)config,
+				       config->priority, 0);
+		} else {
+			rtdm_task_set_priority(&task, config->priority);
+		}
+		break;
+
+        case RTTST_RTIOC_RTDMTEST_TASK_DESTROY:
+		rtdm_task_destroy(&task);
+		rtdm_task_join_nrt(&task, 100);
+                break;
+
 	default:
 		printk("request=%d\n", request);
 		err = -ENOTTY;
@@ -260,6 +313,8 @@ int __init __rtdmtest_init(void)
 
 void __exit __rtdmtest_exit(void)
 {
+	rtdm_task_destroy(&task);
+	rtdm_task_join_nrt(&task, 100);
 	printk("%s: unregistering device %s\n",
 	       __FUNCTION__, device.device_name);
 	rtdm_dev_unregister(&device, 1000);

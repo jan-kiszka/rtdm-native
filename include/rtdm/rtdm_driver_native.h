@@ -30,6 +30,8 @@
 #include <linux/uaccess.h>
 #include <linux/hrtimer.h>
 #include <linux/delay.h>
+#include <linux/syscalls.h>
+#include <linux/sched.h>
 #include <asm/semaphore.h>
 #include <asm/bitops.h>
 #include <linux/net.h>
@@ -362,55 +364,78 @@ static inline void rtdm_nrtsig_pend(rtdm_nrtsig_t *nrt_sig)
  * Task and timing services
  */
 
-typedef struct task_struct rtdm_task_t;
+typedef int (*rtdm_task_proc_t) (void *arg);
 
-typedef void (*rtdm_task_proc_t) (void *arg);
+typedef struct {
+	unsigned long magic;
+	struct task_struct *linux_task;
+	struct completion start;
+	int priority;
+	int stopped;
+	rtdm_task_proc_t proc;
+	void *arg;
+} rtdm_task_t;
 
-#define RTDM_TASK_LOWEST_PRIORITY   XNCORE_LOW_PRIO
-#define RTDM_TASK_HIGHEST_PRIORITY  XNCORE_HIGH_PRIO
+#define RTDM_TASK_LOWEST_PRIORITY   0
+#define RTDM_TASK_HIGHEST_PRIORITY  MAX_RT_PRIO
 
 #define RTDM_TASK_RAISE_PRIORITY    (+1)
 #define RTDM_TASK_LOWER_PRIORITY    (-1)
 
-static inline int rtdm_task_init(rtdm_task_t * task, const char *name,
-				 rtdm_task_proc_t task_proc, void *arg,
-				 int priority, nanosecs_rel_t period)
-{
-    printk("%s not yet supported\n", __FUNCTION__);
-	return -EOPNOTSUPP;
-}
+#define RTDM_TASK_MAGIC             0x07041959
+
+#define rtdm_task_has_magic(task)   (task->magic == RTDM_TASK_MAGIC)
+
+int rtdm_task_init(rtdm_task_t *task, const char *name,
+		   rtdm_task_proc_t proc, void *arg,
+		   int priority, nanosecs_rel_t period);
 
 static inline void rtdm_task_destroy(rtdm_task_t * task)
 {
-	printk("%s not yet supported\n", __FUNCTION__);
+	if (rtdm_task_has_magic(task) && !task->stopped) {
+		printk("%s: sending signal to %s (pid=%d)\n",
+		       __FUNCTION__, task->linux_task->comm,
+		       task->linux_task->pid);
+		send_sig(SIGINT, task->linux_task, 1);
+		wake_up_process(task->linux_task);
+	} else {
+		printk("%s: not allowed on user threads\n", __FUNCTION__);
+	}
 }
 
-static inline void rtdm_task_join_nrt(rtdm_task_t * task,
+static inline void rtdm_task_join_nrt(rtdm_task_t *task,
 				      unsigned int poll_delay)
 {
-	printk("%s not yet supported\n", __FUNCTION__);
+        if (rtdm_task_has_magic(task)) {
+		printk("%s: poll_delay=%d\n", __FUNCTION__, poll_delay);
+		while (!task->stopped)
+			msleep(poll_delay);
+        } else
+                printk("%s: not allowed on user threads\n", __FUNCTION__);
 }
 
-static inline void rtdm_task_set_priority(rtdm_task_t * task, int priority)
-{
-	printk("%s not yet supported\n", __FUNCTION__);
-}
+
+void rtdm_task_set_priority(rtdm_task_t *task, int priority);
 
 static inline int rtdm_task_set_period(rtdm_task_t * task,
 				       nanosecs_rel_t period)
 {
-	printk("%s not yet supported\n", __FUNCTION__);
+	printk("%s not supported\n", __FUNCTION__);
 	return -EOPNOTSUPP;
 }
 
-static inline int rtdm_task_unblock(rtdm_task_t * task)
+static inline int rtdm_task_unblock(rtdm_task_t *task)
 {
-	return wake_up_process(task);
+	if (rtdm_task_has_magic(task) && !task->stopped) {
+		send_sig(SIGINT, task->linux_task, 1);
+		return wake_up_process(task->linux_task);
+	} else
+		return wake_up_process((struct task_struct *)task);
 }
 
 static inline rtdm_task_t *rtdm_task_current(void)
 {
-	return current;
+	return (rtdm_task_t *)current;
 }
 
 static inline int rtdm_task_wait_period(void)
@@ -419,16 +444,26 @@ static inline int rtdm_task_wait_period(void)
 	return -EOPNOTSUPP;
 }
 
+int _rtdm_task_sleep(struct hrtimer_sleeper *sleeper);
+
 static inline int rtdm_task_sleep(nanosecs_rel_t delay)
 {
-	printk("%s not yet supported\n", __FUNCTION__);
-	return -EOPNOTSUPP;
+	struct hrtimer_sleeper timeout;
+	hrtimer_init(&timeout.timer, CLOCK_MONOTONIC, HRTIMER_MODE_ABS);
+	hrtimer_init_sleeper(&timeout, current);
+	timeout.timer.expires = ktime_add_ns(timeout.timer.base->get_time(),
+					     delay);
+	return _rtdm_task_sleep(&timeout);
 }
 
 static inline int rtdm_task_sleep_until(nanosecs_abs_t wakeup_time)
 {
-	printk("%s not yet supported\n", __FUNCTION__);
-	return -EOPNOTSUPP;
+	struct hrtimer_sleeper timeout;
+	ktime_t zero = ktime_set(0, 0);
+	hrtimer_init(&timeout.timer, CLOCK_REALTIME, HRTIMER_MODE_ABS);
+	hrtimer_init_sleeper(&timeout, current);
+	timeout.timer.expires = ktime_add_ns(zero, wakeup_time);
+	return _rtdm_task_sleep(&timeout);
 }
 
 
@@ -523,9 +558,9 @@ static inline void rtdm_event_clear(rtdm_event_t * event)
 	clear_bit(RTDM_EVENT_PENDING, &event->state);
 }
 
- /*
-  * Semaphore services
-  */
+/*
+ * Semaphore services
+ */
 
 #define RTDM_SEM_DESTROY 2
 

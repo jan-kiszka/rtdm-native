@@ -29,8 +29,10 @@
 #include <asm/io.h>
 #include <asm/pgtable.h>
 #include <linux/delay.h>
+#include <linux/file.h>
 #include <linux/mman.h>
-#include <linux/highmem.h>
+#include <linux/syscalls.h>
+#include <linux/unistd.h>
 #include <asm/atomic.h>
 
 #include <rtdm/rtdm_driver.h>
@@ -69,7 +71,11 @@ int rtdm_irq_request(rtdm_irq_t * irq_handle,
 	return ret;
 }
 
-EXPORT_SYMBOL(rtdm_irq_request);
+EXPORT_SYMBOL_GPL(rtdm_irq_request);
+
+/*
+ * Mutex services
+ */
 
 int rtdm_mutex_timedlock(rtdm_mutex_t *mutex,
 			 nanosecs_rel_t timeout,
@@ -99,7 +105,11 @@ int rtdm_mutex_timedlock(rtdm_mutex_t *mutex,
 	return err;
 }
 
-EXPORT_SYMBOL(rtdm_mutex_timedlock);
+EXPORT_SYMBOL_GPL(rtdm_mutex_timedlock);
+
+/*
+ * Event services
+ */
 
 int _rtdm_event_wait(rtdm_event_t * event)
 {
@@ -129,7 +139,7 @@ int _rtdm_event_wait(rtdm_event_t * event)
 	return ret;
 }
 
-EXPORT_SYMBOL(_rtdm_event_wait);
+EXPORT_SYMBOL_GPL(_rtdm_event_wait);
 
 int _rtdm_event_timedwait(rtdm_event_t *event,
 			  nanosecs_rel_t timeout,
@@ -177,7 +187,11 @@ int _rtdm_event_timedwait(rtdm_event_t *event,
 	return 0;
 }
 
-EXPORT_SYMBOL(_rtdm_event_timedwait);
+EXPORT_SYMBOL_GPL(_rtdm_event_timedwait);
+
+/*
+ * Semaphore services
+ */
 
 int _rtdm_sem_down(rtdm_sem_t *sem)
 {
@@ -347,5 +361,132 @@ int _rtdm_sem_timeddown(rtdm_sem_t *sem, nanosecs_rel_t timeout,
 	return ret;
 }
 
-EXPORT_SYMBOL(_rtdm_sem_timeddown);
+EXPORT_SYMBOL_GPL(_rtdm_sem_timeddown);
 
+/*
+ * Task and timing services
+ */
+
+
+static void rtdm_task_exit_files(void)
+{
+        struct fs_struct *fs;
+        struct task_struct *tsk = current;
+
+        exit_fs(tsk);           /* current->fs->count--; */
+        fs = init_task.fs;
+        tsk->fs = fs;
+        atomic_inc(&fs->count);
+        exit_files(tsk);
+        current->files = init_task.files;
+        atomic_inc(&tsk->files->count);
+}
+
+static int rtdm_task(void* arg)
+{
+	int ret;
+	rtdm_task_t *task = (rtdm_task_t *)arg;
+	struct sched_param param = {.sched_priority = task->priority};
+
+        rtdm_task_exit_files();
+
+	/* By default we can run anywhere  */
+	set_cpus_allowed(current, CPU_MASK_ALL);
+
+	task->magic = RTDM_TASK_MAGIC;
+	task->linux_task = current;
+	current->flags |= PF_NOFREEZE;
+
+	ret = sched_setscheduler(current, SCHED_FIFO, &param);
+
+	__set_current_state(TASK_INTERRUPTIBLE);
+	complete(&task->start);
+	schedule();
+	ret = task->proc(task->arg);
+#if 1
+	printk("Exiting pid %d with %d\n", current->pid, ret);
+#endif
+	task->stopped = 1;
+
+	return 0;
+}
+
+int rtdm_task_init(rtdm_task_t *task, const char *name,
+		   rtdm_task_proc_t proc, void *arg,
+		   int priority, nanosecs_rel_t period)
+{
+	pid_t pid;
+
+	if (priority < RTDM_TASK_LOWEST_PRIORITY ||
+	    priority > RTDM_TASK_HIGHEST_PRIORITY)
+		return -EINVAL;
+
+	task->proc = proc;
+	task->arg = arg;
+	task->priority = priority;
+
+	init_completion(&task->start);
+
+ 	pid = kernel_thread(rtdm_task, task, CLONE_FS | CLONE_FILES | SIGCHLD);
+	if (pid < 0) {
+		printk(KERN_WARNING "kernel_thread failed with %d\n", -pid);
+		task->stopped = 1;
+		return pid;
+	} else {
+		task->stopped = 0;
+		wait_for_completion(&task->start);
+		printk("kernel_thread succeeded, pid=%d\n", pid);
+	}
+
+	snprintf(task->linux_task->comm, sizeof(task->linux_task->comm),
+		 "RTDM:%s", name);
+
+	smp_mb();
+	wake_up_process(task->linux_task);
+
+	return 0;
+}
+
+EXPORT_SYMBOL_GPL(rtdm_task_init);
+
+void rtdm_task_set_priority(rtdm_task_t *task, int priority)
+{
+        if (rtdm_task_has_magic(task)) {
+		struct sched_param param = {.sched_priority = priority};
+		sched_setscheduler(task->linux_task, SCHED_FIFO, &param);
+	} else
+		printk("%s: not allowed on user threads\n", __FUNCTION__);
+}
+
+EXPORT_SYMBOL_GPL(rtdm_task_set_priority);
+
+int _rtdm_task_sleep(struct hrtimer_sleeper *timeout)
+{
+	int ret;
+
+	set_current_state(TASK_INTERRUPTIBLE);
+	hrtimer_start(&timeout->timer, timeout->timer.expires,
+		      HRTIMER_MODE_ABS);
+
+	for (;;) {
+		/* Signal pending? */
+		if (signal_pending(current)) {
+			ret = -EINTR;
+			break;
+		}
+		/* hrtimer expired */
+		if (!timeout->task) {
+			ret = 0;
+			break;
+		}
+		schedule();
+		set_current_state(TASK_INTERRUPTIBLE);
+	}
+	set_current_state(TASK_RUNNING);
+
+	hrtimer_cancel(&timeout->timer);
+
+	return ret;
+}
+
+EXPORT_SYMBOL_GPL(_rtdm_task_sleep);
