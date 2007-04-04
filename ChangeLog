@@ -1,3 +1,12 @@
+2007-04-04 Wolfgang Grandegger  <wg@grandegger.com>
+
+	* README.rtdm-native: updated.
+
+	* ksrc/skins/rtdm/native/core.h: removed because it's obsolete
+
+	* ksrc/drivers/testing/rtdmtest.c, ksrc/skins/rtdm/native/drvlib.c:
+	Minor cleanups.
+
 2007-04-03 Wolfgang Grandegger  <wg@grandegger.com>
 
 	* examples/rtdm-native/Makefile, examples/rtdm-native/rtdmtest-task.c:

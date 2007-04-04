@@ -1,8 +1,9 @@
 0. Introduction
 ---------------
 
-This is a first version of RTDM-native, a port of RTDM [1,2] over native
-Linux with the real-time preemption and high-resolution timer patch [3,4].
+This is a first version of RTDM-native, a port of RTDM, the Real-Time
+Driver Model [1,2] over native Linux with the real-time preemption and
+high-resolution timer patch [3,4].
 
 1. Installation
 ---------------
@@ -80,10 +81,11 @@ $ make
 2. Availability and test cases
 ------------------------------
 
-This port does not include complete support for RTDM task services. The
-implementation is not straight-forward, especially because of trick parts
-like task removal and releasing locked resources. But for most RTDM
-drivers, it is not needed.
+This port has preliminary and experimental support for RTDM task services.
+The implementation is not straight-forward, especially because of tricky
+parts like periodic mode, task removal and releasing locked resources.
+Nevertheless, the basic functionality is available and it should already
+be enough to get RTnet working.
 
 The RTDM-native port has been tested with the following RTDM named and
 protocol drivers:
@@ -92,18 +94,17 @@ protocol drivers:
 - RT-Socket-CAN
 - irqbench (without kernel tasks)
 
-Note: for RTnet [8] further effort is necessary. The RTDM task support
-needs to be completed and the RTnet build system must be adopted
-accordingly.
+Note: for RTnet [8] further effort is required, mainly its build system
+must be adopted accordingly.
 
 
 3. To-Do List
 -------------
 
-- Implementing RTDM task services.
+- Finalizing and testing RTDM task support.
 - Implementing PROC file-system support.
 - Fixing a few issues marked with "FIXME" in the source code.
-- Adapting RTnet to build and work with RTnet.
+- Get RTnet built and working with RTDM-native.
 
 
 4. References

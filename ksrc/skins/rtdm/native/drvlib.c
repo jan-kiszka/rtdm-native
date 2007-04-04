@@ -1,5 +1,5 @@
 /**
- * Real-Time Driver Model for  native Linux-rt, driver library
+ * Real-Time Driver Model for native Linux-rt, driver library
  *
  * Copyright (C) 2007 Wolfgang Grandegger <wg@grandegger.com>
  * Copyright (C) 2005 Jan Kiszka <jan.kiszka@web.de>
