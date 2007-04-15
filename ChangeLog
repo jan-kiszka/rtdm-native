@@ -1,3 +1,14 @@
+2007-04-15 Wolfgang Grandegger  <wg@grandegger.com>
+
+	* ksrc/skins/rtdm/native/Kconfig: Pervent the RTDM core services from
+	being built as kernel module (xeno_rtdm.ko) because some kernel symbols
+	are not exported.
+
+	* ksrc/drivers/testing/Kconfig: add proper dependency for "switchtest"
+	because it uses the Xenomai nucleus.
+
+	* README.rtdm-native: updated.
+
 2007-04-04 Wolfgang Grandegger  <wg@grandegger.com>
 
 	* README.rtdm-native: updated.

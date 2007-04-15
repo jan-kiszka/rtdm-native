@@ -1,9 +1,16 @@
 0. Introduction
 ---------------
 
-This is a first version of RTDM-native, a port of RTDM, the Real-Time
-Driver Model [1,2] over native Linux with the real-time preemption and
-high-resolution timer patch [3,4].
+This is a first version of RTDM-native, a port of RTDM [1,2] over native
+Linux with the real-time preemption and high-resolution timer patch [3,4].
+RTDM, the Real-Time Driver Model, is an approach to unify the interfaces
+for developing device drivers and associated applications under real-time
+Linux. It is currently available for the dual-kernel hard real-time Linux
+extensions Xenomai [5] and RTAI [6]. This port permits to use RTDM drivers
+like RTserial, RT-Socket-CAN and soon RTnet under Linux-rt as well.
+RTDM-native is on the road map [7] of Xenomai 3 aiming at support for
+native preemption.
+
 
 1. Installation
 ---------------
@@ -12,7 +19,7 @@ high-resolution timer patch [3,4].
 1.1 Downloading RTDM-native
 ---------------------------
 
-RTDM-native can be downloaded from Xenomai's SVN repository [6] as shown
+RTDM-native can be downloaded from Xenomai's SVN repository [8] as shown
 below:
 
 $ svn co http://svn.gna.org/svn/xenomai/branches/rtdm-native rtdm-native
@@ -22,7 +29,7 @@ $ export RTDM_NATIVE_ROOT=$PWD/rtdm-native
 1.2 Preparing the target kernel
 -------------------------------
 
-RTDM-native uses Xenomai's procedure of preparing the kernel tree [5].
+RTDM-native uses Xenomai's procedure of preparing the kernel tree [9].
 The shell script "scripts/prepare-kernel.sh" sets up the target kernel
 properly. The syntax is as follows:
 
@@ -59,13 +66,13 @@ Once the target kernel has been prepared, all RTDM-native configuration
 options are available from the "Real-time subsystem" toplevel menu.
 
 There are several configure options that cause large latencies; they
-should be avoided. Check Xenomai's TROUBLESHOOTING file [7] and the
+should be avoided. Check Xenomai's TROUBLESHOOTING file [10] and the
 Real-Time Linux Wiki [3] for futher information and help. Once configured,
 the kernel should be built as usual.
 
 If you want several different configs/builds at hand, you can reuse
 the same source by adding O=../build-<target> to each make invocation.
-See also section 2.2 of [5] for an example.
+See also section 2.2 of [9] for an example.
 
 
 1.4 Building the user-space support
@@ -94,7 +101,7 @@ protocol drivers:
 - RT-Socket-CAN
 - irqbench (without kernel tasks)
 
-Note: for RTnet [8] further effort is required, mainly its build system
+Note: for RTnet [11] further effort is required, mainly its build system
 must be adopted accordingly.
 
 
@@ -114,7 +121,10 @@ must be adopted accordingly.
 [2] http://www.xenomai.org/documentation/trunk/html/api/group__rtdm.html
 [3] http://rt.wiki.kernel.org/index.php/Main_Page
 [4] http://people.redhat.com/mingo/realtime-preempt/
-[5] http://www.rts.uni-hannover.de/xenomai/lxr/source/README.INSTALL?v=SVN-trunk
-[6] https://gna.org/svn/?group=xenomai
-[7] http://www.rts.uni-hannover.de/xenomai/lxr/source/TROUBLESHOOTING?v=SVN-trunk
-[8] http://www.rtnet.org
+[5] http://www.xenomai.org
+[6] http://www.rtai.org
+[7] http://www.xenomai.org/index.php/Xenomai:Roadmap
+[8] https://gna.org/svn/?group=xenomai
+[9] http://www.rts.uni-hannover.de/xenomai/lxr/source/README.INSTALL?v=SVN-trunk
+[10] http://www.rts.uni-hannover.de/xenomai/lxr/source/TROUBLESHOOTING?v=SVN-trunk
+[11] http://www.rtnet.org

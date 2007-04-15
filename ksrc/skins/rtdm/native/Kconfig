@@ -1,7 +1,7 @@
 menu "Real-time sub-system"
 
 config XENO_SKIN_RTDM
-	tristate "Real-Time Driver Model"
+	bool "Real-Time Driver Model"
 	default y
 	help
 

@@ -1,7 +1,7 @@
 menu "Testing drivers"
 
 config XENO_DRIVERS_TIMERBENCH
-	depends on XENO_OPT_NUCLEUS
+	depends on XENO_SKIN_RTDM && XENO_OPT_NUCLEUS
 	tristate "Timer benchmark driver"
 	help
 	Kernel-based benchmark driver for timer latency evaluation.
@@ -16,7 +16,7 @@ config XENO_DRIVERS_IRQBENCH
 	(see testsuite/irqbench).
 
 config XENO_DRIVERS_SWITCHTEST
-	depends on XENO_SKIN_RTDM
+	depends on XENO_SKIN_RTDM && XENO_OPT_NUCLEUS
 	tristate "Context switch unit testing driver"
 	help
 	Kernel-based driver for unit testing context switches and
