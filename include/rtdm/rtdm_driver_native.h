@@ -32,7 +32,7 @@
 #include <linux/delay.h>
 #include <linux/syscalls.h>
 #include <linux/sched.h>
-#include <asm/semaphore.h>
+#include <linux/semaphore.h>
 #include <asm/bitops.h>
 #include <linux/net.h>
 #include <asm/errno.h>
@@ -352,7 +352,7 @@ static inline int rtdm_nrtsig_init(rtdm_nrtsig_t *nrt_sig,
 
 static inline void rtdm_nrtsig_destroy(rtdm_nrtsig_t *nrt_sig)
 {
-	work_release(nrt_sig);
+	work_clear_pending(nrt_sig);
 }
 
 static inline void rtdm_nrtsig_pend(rtdm_nrtsig_t *nrt_sig)

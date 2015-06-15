@@ -91,14 +91,14 @@ int rtdm_mutex_timedlock(rtdm_mutex_t *mutex,
 			toseq = &toseq_local;
 			rtdm_toseq_init(toseq, timeout);
 		}
-		err = rt_mutex_timed_lock(&mutex->lock, toseq, 1);
+		err = rt_mutex_timed_lock(&mutex->lock, toseq);
 	} else if (timeout < 0) {
 		if (rt_mutex_trylock(&mutex->lock))
 			return 0;
 		else
 			return -EWOULDBLOCK;
 	} else {
-		err = rt_mutex_lock_interruptible(&mutex->lock, 1);
+		err = rt_mutex_lock_interruptible(&mutex->lock);
 	}
 	if (unlikely(test_bit(RTDM_MUTEX_DESTROY, &mutex->state)))
 		err = -EIDRM;
@@ -207,7 +207,7 @@ int _rtdm_sem_down(rtdm_sem_t *sem)
 
 	tsk->state = TASK_INTERRUPTIBLE;
 	spin_lock_irqsave(&sem->wait.lock, flags);
-	add_wait_queue_exclusive_locked(&sem->wait, &wait);
+	add_wait_queue_exclusive(&sem->wait, &wait); // XXX?
 
 	sem->sleepers++;
 	for (;;) {
@@ -249,7 +249,7 @@ int _rtdm_sem_down(rtdm_sem_t *sem)
 		spin_lock_irqsave(&sem->wait.lock, flags);
 		tsk->state = TASK_INTERRUPTIBLE;
 	}
-	remove_wait_queue_locked(&sem->wait, &wait);
+	remove_wait_queue(&sem->wait, &wait);
 	wake_up_locked(&sem->wait);
 	spin_unlock_irqrestore(&sem->wait.lock, flags);
 
@@ -296,13 +296,14 @@ int _rtdm_sem_timeddown(rtdm_sem_t *sem, nanosecs_rel_t timeout,
 			toseq = &toseq_local;
 			rtdm_toseq_init(toseq, timeout);
 		}
-		hrtimer_start(&toseq->timer, toseq->timer.expires,
+		hrtimer_start(&toseq->timer,
+			      hrtimer_get_remaining (&toseq->timer), // XXX?
 			      HRTIMER_MODE_ABS);
 	}
 
 	tsk->state = TASK_INTERRUPTIBLE;
 	spin_lock_irqsave(&sem->wait.lock, flags);
-	add_wait_queue_exclusive_locked(&sem->wait, &wait);
+	add_wait_queue_exclusive(&sem->wait, &wait);
 
 	sem->sleepers++;
 	for (;;) {
@@ -350,7 +351,7 @@ int _rtdm_sem_timeddown(rtdm_sem_t *sem, nanosecs_rel_t timeout,
 		spin_lock_irqsave(&sem->wait.lock, flags);
 		tsk->state = TASK_INTERRUPTIBLE;
 	}
-	remove_wait_queue_locked(&sem->wait, &wait);
+	remove_wait_queue(&sem->wait, &wait);
 	wake_up_locked(&sem->wait);
 	spin_unlock_irqrestore(&sem->wait.lock, flags);
 
