@@ -293,8 +293,7 @@ static struct rtdm_device device = {
 	.proc_name         = device.device_name,
 };
 
-
-int __init __rtdmtest_init(void)
+static int __init __rtdmtest_init(void)
 {
 	int err;
 
@@ -308,10 +307,10 @@ int __init __rtdmtest_init(void)
 		start_index++;
 	} while (err == -EEXIST);
 
-	return err;
+	return err < 0 ? err : 0;
 }
 
-void __exit __rtdmtest_exit(void)
+static void __exit __rtdmtest_exit(void)
 {
 	rtdm_task_destroy(&task);
 	rtdm_task_join_nrt(&task, 100);
