@@ -30,9 +30,12 @@
 #include <asm/pgtable.h>
 #include <linux/delay.h>
 #include <linux/file.h>
+#include <linux/fs_struct.h>
+#include <linux/fdtable.h>
 #include <linux/mman.h>
 #include <linux/syscalls.h>
 #include <linux/unistd.h>
+#include <linux/module.h>
 #include <asm/atomic.h>
 
 #include <rtdm/rtdm_driver.h>
@@ -162,7 +165,9 @@ int _rtdm_event_timedwait(rtdm_event_t *event,
 				toseq = &toseq_local;
 				rtdm_toseq_init(toseq, timeout);
 			}
-			hrtimer_start(&toseq->timer, toseq->timer.expires, HRTIMER_MODE_ABS);
+			hrtimer_start(&toseq->timer,
+				      hrtimer_get_remaining (&toseq->timer), // XXX?
+				      HRTIMER_MODE_ABS);
 			schedule();
 			/* Somebody woke us up, check again */
 			if (test_bit(RTDM_EVENT_DESTROY, &event->state))
@@ -471,7 +476,8 @@ int _rtdm_task_sleep(struct hrtimer_sleeper *timeout)
 	int ret;
 
 	set_current_state(TASK_INTERRUPTIBLE);
-	hrtimer_start(&timeout->timer, timeout->timer.expires,
+	hrtimer_start(&timeout->timer,
+		      hrtimer_get_remaining (&timeout->timer), // XXX?
 		      HRTIMER_MODE_ABS);
 
 	for (;;) {

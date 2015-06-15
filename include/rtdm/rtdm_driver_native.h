@@ -451,8 +451,9 @@ static inline int rtdm_task_sleep(nanosecs_rel_t delay)
 	struct hrtimer_sleeper timeout;
 	hrtimer_init(&timeout.timer, CLOCK_MONOTONIC, HRTIMER_MODE_ABS);
 	hrtimer_init_sleeper(&timeout, current);
-	timeout.timer.expires = ktime_add_ns(timeout.timer.base->get_time(),
-					     delay);
+	hrtimer_set_expires(&timeout.timer,
+			    ktime_add_ns(timeout.timer.base->get_time(),
+					 delay));
 	return _rtdm_task_sleep(&timeout);
 }
 
@@ -462,7 +463,7 @@ static inline int rtdm_task_sleep_until(nanosecs_abs_t wakeup_time)
 	ktime_t zero = ktime_set(0, 0);
 	hrtimer_init(&timeout.timer, CLOCK_REALTIME, HRTIMER_MODE_ABS);
 	hrtimer_init_sleeper(&timeout, current);
-	timeout.timer.expires = ktime_add_ns(zero, wakeup_time);
+	hrtimer_set_expires(&timeout.timer,ktime_add_ns(zero, wakeup_time));
 	return _rtdm_task_sleep(&timeout);
 }
 
@@ -483,7 +484,9 @@ static inline void rtdm_toseq_init(rtdm_toseq_t *toseq,
 {
 	hrtimer_init(&toseq->timer, CLOCK_MONOTONIC, HRTIMER_MODE_ABS);
 	hrtimer_init_sleeper(toseq, current);
-	toseq->timer.expires = ktime_add_ns(toseq->timer.base->get_time(), timeout);
+	hrtimer_set_expires(&toseq->timer,
+			    ktime_add_ns(toseq->timer.base->get_time(),
+					 timeout));
 }
 
 /*
