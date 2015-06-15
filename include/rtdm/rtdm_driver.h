@@ -42,6 +42,12 @@
 
 #endif
 
+typedef void (*exit_files_t)(struct task_struct *tsk);
+typedef void (*exit_fs_t)(struct task_struct *tsk);
+
+extern exit_files_t _exit_files;
+extern exit_fs_t _exit_fs;
+
 #endif /* _RTDM_DRIVER_H */
 
 

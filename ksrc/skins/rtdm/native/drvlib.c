@@ -373,11 +373,13 @@ static void rtdm_task_exit_files(void)
         struct fs_struct *fs;
         struct task_struct *tsk = current;
 
-        exit_fs(tsk);           /* current->fs->count--; */
+        _exit_fs(tsk);           /* current->fs->users--; */
         fs = init_task.fs;
         tsk->fs = fs;
-        atomic_inc(&fs->count);
-        exit_files(tsk);
+	spin_lock(&fs->lock);
+	++fs->users;
+	spin_unlock(&fs->lock);
+        _exit_files(tsk);
         current->files = init_task.files;
         atomic_inc(&tsk->files->count);
 }
@@ -387,7 +389,10 @@ static int rtdm_task(void* arg)
 	int ret;
 	rtdm_task_t *task = (rtdm_task_t *)arg;
 	struct sched_param param = {.sched_priority = task->priority};
-
+#if 1
+	printk("rtdm_task pid %d\n", current->pid);
+#endif
+	
         rtdm_task_exit_files();
 
 	/* By default we can run anywhere  */
