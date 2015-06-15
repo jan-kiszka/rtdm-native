@@ -1,53 +1,29 @@
-ifeq ($(PATCHLEVEL),6)
+RTDMDIR := /home/mah/rtdm-native
+KDIR := /lib/modules/$(shell uname -r)/build
+PWD := $(shell pwd)
 
-# Makefile frag for Linux v2.6
+obj-m += rtdmtest.o
 
-EXTRA_CFLAGS += -D__IN_XENOMAI__ -Iinclude/xenomai
+obj-m += rtdm.o
+rtdm-objs += ../../skins/rtdm/native/module.o \
+	../../skins/rtdm/native/device.o \
+	../../skins/rtdm/native/drvlib.o \
+	../../skins/rtdm/native/core.o
 
-obj-$(CONFIG_XENO_DRIVERS_TIMERBENCH) += xeno_timerbench.o
-obj-$(CONFIG_XENO_DRIVERS_IRQBENCH)   += xeno_irqbench.o
-obj-$(CONFIG_XENO_DRIVERS_SWITCHTEST) += xeno_switchtest.o
-obj-$(CONFIG_XENO_DRIVERS_RTDMTEST) += xeno_rtdmtest.o
+ccflags-y := -DCONFIG_XENO_OPT_DEBUG_RTDM=1
+ccflags-y += -I$(RTDMDIR)/include/
 
-xeno_timerbench-y := timerbench.o
 
-xeno_irqbench-y := irqbench.o
+default:
+	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules
 
-xeno_switchtest-y := switchtest.o
+test:
+	echo $(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules
+clean:
+	rm -rf *.mod.c *.ko *.o *.symvers *.order ../../skins/rtdm/native/*.o
 
-xeno_rtdmtest-y := rtdmtest.o
 
-EXTRA_CFLAGS += -D__IN_XENOMAI__ -Iinclude/xenomai
-
-else
-
-# Makefile frag for Linux v2.4
-
-O_TARGET := built-in.o
-
-obj-$(CONFIG_XENO_DRIVERS_TIMERBENCH) += xeno_timerbench.o
-obj-$(CONFIG_XENO_DRIVERS_IRQBENCH)   += xeno_irqbench.o
-obj-$(CONFIG_XENO_DRIVERS_SWITCHTEST) += xeno_switchtest.o
-
-xeno_timerbench-objs := timerbench.o
-
-xeno_irqbench-objs := irqbench.o
-
-xeno_switchtest-objs := switchtest.o
-
-export-objs := $(xeno_timerbench-objs) $(xeno_irqbench-objs) $(xeno_switchtest-objs)
-
-EXTRA_CFLAGS += -D__IN_XENOMAI__ -I$(TOPDIR)/include/xenomai -I$(TOPDIR)/include/xenomai/compat
-
-include $(TOPDIR)/Rules.make
-
-xeno_timerbench.o: $(xeno_timerbench-objs)
-	$(LD) -r -o $@ $(xeno_timerbench-objs)
-
-xeno_irqbench.o: $(xeno_irqbench-objs)
-	$(LD) -r -o $@ $(xeno_irqbench-objs)
-
-xeno_switchtest.o: $(xeno_switchtest-objs)
-	$(LD) -r -o $@ $(xeno_switchtest-objs)
-
-endif
+install: rtdm.ko rtdmtest.ko
+	mkdir -p /lib/modules/$(shell uname -r)/kernel/drivers/rtdm
+	cp rtdm.ko rtdmtest.ko /lib/modules/$(shell uname -r)/kernel/drivers/rtdm
+	depmod -a
