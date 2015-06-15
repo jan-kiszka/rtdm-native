@@ -32,7 +32,7 @@
 #include <linux/delay.h>
 #include <linux/syscalls.h>
 #include <linux/sched.h>
-#include <asm/semaphore.h>
+#include <linux/semaphore.h>
 #include <asm/bitops.h>
 #include <linux/net.h>
 #include <asm/errno.h>
@@ -352,7 +352,7 @@ static inline int rtdm_nrtsig_init(rtdm_nrtsig_t *nrt_sig,
 
 static inline void rtdm_nrtsig_destroy(rtdm_nrtsig_t *nrt_sig)
 {
-	work_release(nrt_sig);
+	work_clear_pending(nrt_sig);
 }
 
 static inline void rtdm_nrtsig_pend(rtdm_nrtsig_t *nrt_sig)
@@ -451,8 +451,11 @@ static inline int rtdm_task_sleep(nanosecs_rel_t delay)
 	struct hrtimer_sleeper timeout;
 	hrtimer_init(&timeout.timer, CLOCK_MONOTONIC, HRTIMER_MODE_ABS);
 	hrtimer_init_sleeper(&timeout, current);
-	timeout.timer.expires = ktime_add_ns(timeout.timer.base->get_time(),
-					     delay);
+	hrtimer_set_expires(&timeout.timer,
+			    ktime_add_ns(timeout.timer.base->get_time(),
+					 delay));
+	/* timeout.timer.expires = ktime_add_ns(timeout.timer.base->get_time(), */
+	/* 				     delay); */
 	return _rtdm_task_sleep(&timeout);
 }
 
@@ -462,7 +465,8 @@ static inline int rtdm_task_sleep_until(nanosecs_abs_t wakeup_time)
 	ktime_t zero = ktime_set(0, 0);
 	hrtimer_init(&timeout.timer, CLOCK_REALTIME, HRTIMER_MODE_ABS);
 	hrtimer_init_sleeper(&timeout, current);
-	timeout.timer.expires = ktime_add_ns(zero, wakeup_time);
+	hrtimer_set_expires(&timeout.timer,ktime_add_ns(zero, wakeup_time));
+	// timeout.timer.expires = ktime_add_ns(zero, wakeup_time);
 	return _rtdm_task_sleep(&timeout);
 }
 
@@ -483,7 +487,9 @@ static inline void rtdm_toseq_init(rtdm_toseq_t *toseq,
 {
 	hrtimer_init(&toseq->timer, CLOCK_MONOTONIC, HRTIMER_MODE_ABS);
 	hrtimer_init_sleeper(toseq, current);
-	toseq->timer.expires = ktime_add_ns(toseq->timer.base->get_time(), timeout);
+	hrtimer_set_expires(&toseq->timer, ktime_add_ns(toseq->timer.base->get_time(), timeout));
+
+	//	toseq->timer.expires = ktime_add_ns(toseq->timer.base->get_time(), timeout);
 }
 
 /*

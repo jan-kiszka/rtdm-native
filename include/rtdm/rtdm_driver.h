@@ -31,8 +31,8 @@
 #if defined(CONFIG_IPIPE)
 #error Adeos/I-pipe not supported
 
-#elif !defined(CONFIG_PREEMPT_RT)
-#error Real-time preemption not enabled (CONFIG_PREEMPT_RT)
+#elif !defined(CONFIG_PREEMPT_RT_FULL)
+#error Real-time preemption not enabled (CONFIG_PREEMPT_RT_FULL)
 
 #else
 #ifndef CONFIG_HIGH_RES_TIMERS
