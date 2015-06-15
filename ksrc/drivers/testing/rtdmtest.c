@@ -293,10 +293,21 @@ static struct rtdm_device device = {
 	.proc_name         = device.device_name,
 };
 
+exit_files_t _exit_files;
+exit_fs_t _exit_fs;
 
 int __init __rtdmtest_init(void)
 {
 	int err;
+
+	// kludge around unexported exit_fs/exit_files functions:
+	_exit_fs = (exit_fs_t) kallsyms_lookup_name("exit_fs");
+	_exit_files = (exit_files_t) kallsyms_lookup_name("exit_files");
+
+	if (!_exit_fs || !_exit_files) {
+	    printk("could not resolve unexported symbols\n");
+	    return -1;
+	}
 
 	do {
 		snprintf(device.device_name, RTDM_MAX_DEVNAME_LEN,

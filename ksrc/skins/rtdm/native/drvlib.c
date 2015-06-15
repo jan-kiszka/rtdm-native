@@ -30,9 +30,13 @@
 #include <asm/pgtable.h>
 #include <linux/delay.h>
 #include <linux/file.h>
+#include <linux/fs_struct.h>
+#include <linux/fdtable.h>
 #include <linux/mman.h>
 #include <linux/syscalls.h>
 #include <linux/unistd.h>
+#include <linux/module.h>
+//#include <config/modversions.h>
 #include <asm/atomic.h>
 
 #include <rtdm/rtdm_driver.h>
@@ -91,14 +95,14 @@ int rtdm_mutex_timedlock(rtdm_mutex_t *mutex,
 			toseq = &toseq_local;
 			rtdm_toseq_init(toseq, timeout);
 		}
-		err = rt_mutex_timed_lock(&mutex->lock, toseq, 1);
+		err = rt_mutex_timed_lock(&mutex->lock, toseq);
 	} else if (timeout < 0) {
 		if (rt_mutex_trylock(&mutex->lock))
 			return 0;
 		else
 			return -EWOULDBLOCK;
 	} else {
-		err = rt_mutex_lock_interruptible(&mutex->lock, 1);
+		err = rt_mutex_lock_interruptible(&mutex->lock);
 	}
 	if (unlikely(test_bit(RTDM_MUTEX_DESTROY, &mutex->state)))
 		err = -EIDRM;
@@ -162,7 +166,9 @@ int _rtdm_event_timedwait(rtdm_event_t *event,
 				toseq = &toseq_local;
 				rtdm_toseq_init(toseq, timeout);
 			}
-			hrtimer_start(&toseq->timer, toseq->timer.expires, HRTIMER_MODE_ABS);
+			hrtimer_start(&toseq->timer,
+				      hrtimer_get_remaining (&toseq->timer), // XXX?
+				      HRTIMER_MODE_ABS);
 			schedule();
 			/* Somebody woke us up, check again */
 			if (test_bit(RTDM_EVENT_DESTROY, &event->state))
@@ -207,7 +213,7 @@ int _rtdm_sem_down(rtdm_sem_t *sem)
 
 	tsk->state = TASK_INTERRUPTIBLE;
 	spin_lock_irqsave(&sem->wait.lock, flags);
-	add_wait_queue_exclusive_locked(&sem->wait, &wait);
+	add_wait_queue_exclusive(&sem->wait, &wait); // XXX?
 
 	sem->sleepers++;
 	for (;;) {
@@ -249,7 +255,7 @@ int _rtdm_sem_down(rtdm_sem_t *sem)
 		spin_lock_irqsave(&sem->wait.lock, flags);
 		tsk->state = TASK_INTERRUPTIBLE;
 	}
-	remove_wait_queue_locked(&sem->wait, &wait);
+	remove_wait_queue(&sem->wait, &wait);
 	wake_up_locked(&sem->wait);
 	spin_unlock_irqrestore(&sem->wait.lock, flags);
 
@@ -296,13 +302,14 @@ int _rtdm_sem_timeddown(rtdm_sem_t *sem, nanosecs_rel_t timeout,
 			toseq = &toseq_local;
 			rtdm_toseq_init(toseq, timeout);
 		}
-		hrtimer_start(&toseq->timer, toseq->timer.expires,
+		hrtimer_start(&toseq->timer,
+			      hrtimer_get_remaining (&toseq->timer), // XXX?
 			      HRTIMER_MODE_ABS);
 	}
 
 	tsk->state = TASK_INTERRUPTIBLE;
 	spin_lock_irqsave(&sem->wait.lock, flags);
-	add_wait_queue_exclusive_locked(&sem->wait, &wait);
+	add_wait_queue_exclusive(&sem->wait, &wait);
 
 	sem->sleepers++;
 	for (;;) {
@@ -350,7 +357,7 @@ int _rtdm_sem_timeddown(rtdm_sem_t *sem, nanosecs_rel_t timeout,
 		spin_lock_irqsave(&sem->wait.lock, flags);
 		tsk->state = TASK_INTERRUPTIBLE;
 	}
-	remove_wait_queue_locked(&sem->wait, &wait);
+	remove_wait_queue(&sem->wait, &wait);
 	wake_up_locked(&sem->wait);
 	spin_unlock_irqrestore(&sem->wait.lock, flags);
 
@@ -373,11 +380,13 @@ static void rtdm_task_exit_files(void)
         struct fs_struct *fs;
         struct task_struct *tsk = current;
 
-        exit_fs(tsk);           /* current->fs->count--; */
+        _exit_fs(tsk);           /* current->fs->users--; */
         fs = init_task.fs;
         tsk->fs = fs;
-        atomic_inc(&fs->count);
-        exit_files(tsk);
+	spin_lock(&fs->lock);
+	++fs->users;
+	spin_unlock(&fs->lock);
+        _exit_files(tsk);
         current->files = init_task.files;
         atomic_inc(&tsk->files->count);
 }
@@ -465,7 +474,8 @@ int _rtdm_task_sleep(struct hrtimer_sleeper *timeout)
 	int ret;
 
 	set_current_state(TASK_INTERRUPTIBLE);
-	hrtimer_start(&timeout->timer, timeout->timer.expires,
+	hrtimer_start(&timeout->timer,
+		      hrtimer_get_remaining (&timeout->timer), // XXX?
 		      HRTIMER_MODE_ABS);
 
 	for (;;) {
