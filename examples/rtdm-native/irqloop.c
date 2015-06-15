@@ -21,6 +21,7 @@
 #include <signal.h>
 #include <string.h>
 #include <pthread.h>
+#include <limits.h>
 #include <unistd.h>
 #include <sys/mman.h>
 #include <rtdm/rttesting.h>
